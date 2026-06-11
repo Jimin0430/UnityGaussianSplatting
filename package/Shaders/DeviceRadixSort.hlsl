@@ -39,7 +39,12 @@ groupshared uint g_scan[SCAN_DIM];  //Shared memory for the scan
 //INIT KERNEL
 //*****************************************************************************
 //Clear the global histogram, as we will be adding to it atomically
+// [JIM] 모바일 GPU 한계 512에 맞춤 (Mali-G78 디바이스 로그로 확인됨). 버퍼 초기화만 하므로 스레드 수 변경해도 알고리즘에 영향 없음.
+#if defined(SHADER_API_MOBILE)
+[numthreads(512, 1, 1)]
+#else
 [numthreads(1024, 1, 1)]
+#endif
 void InitDeviceRadixSort(int3 id : SV_DispatchThreadID)
 {
     b_globalHist[id.x] = 0;

@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: MIT
+// [JIM] Mali-G78 등 모바일 GPU는 스레드그룹 최대 512개 지원 (디바이스 로그로 확인됨)
+// [JIM] SHADER_API_MOBILE은 Unity가 Android/iOS 빌드 시 자동으로 정의하는 매크로
+#if defined(SHADER_API_MOBILE)
+#define GROUP_SIZE 512
+#else
 #define GROUP_SIZE 1024
+#endif
 
 #pragma kernel CSSetIndices
 #pragma kernel CSCalcDistances

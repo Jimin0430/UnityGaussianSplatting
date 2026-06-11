@@ -117,8 +117,8 @@ namespace GaussianSplatting.Runtime
 
                 // sort
                 var matrix = gs.transform.localToWorldMatrix;
-                if (gs.m_FrameCounter % gs.m_SortNthFrame == 0)
-                    gs.SortPoints(cmb, cam, matrix);
+                // if (gs.m_FrameCounter % gs.m_SortNthFrame == 0)
+                    // gs.SortPoints(cmb, cam, matrix);
                 ++gs.m_FrameCounter;
 
                 // cache view
@@ -478,10 +478,29 @@ namespace GaussianSplatting.Runtime
             if (!resourcesAreSetUp)
                 return;
 
+            // [JIM] 디버그: 디바이스 한계 vs 커널 스레드 크기 비교
+            LogKernelThreadGroupSizes();
+
             EnsureMaterials();
             EnsureSorterAndRegister();
 
             CreateResourcesForAsset();
+        }
+
+        // [JIM] 각 커널의 스레드그룹 크기와 디바이스 한계를 비교해서 로그로 출력
+        void LogKernelThreadGroupSizes()
+        {
+            int maxX = SystemInfo.maxComputeWorkGroupSizeX;
+            int maxY = SystemInfo.maxComputeWorkGroupSizeY;
+            int maxZ = SystemInfo.maxComputeWorkGroupSizeZ;
+            Debug.Log($"[JIM] Device max compute group size: X={maxX}, Y={maxY}, Z={maxZ}");
+
+            foreach (KernelIndices kernel in Enum.GetValues(typeof(KernelIndices)))
+            {
+                m_CSSplatUtilities.GetKernelThreadGroupSizes((int)kernel, out uint x, out uint y, out uint z);
+                bool exceeds = x > maxX || y > maxY || z > maxZ;
+                Debug.Log($"[JIM] Kernel {(int)kernel} ({kernel}): ({x},{y},{z}) {(exceeds ? "❌ EXCEEDS LIMIT" : "✅ OK")}");
+            }
         }
 
         void SetAssetDataOnCS(CommandBuffer cmb, KernelIndices kernel)
