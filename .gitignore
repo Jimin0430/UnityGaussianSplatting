@@ -25,3 +25,16 @@
 /projects/**/UserSettings/*
 /projects/**/obj/*
 *.sln.DotSettings.user
+
+# Unity 에디터 자동 생성
+/projects/**/.utmp/
+/projects/**/*BurstDebugInformation_DoNotShip/
+/projects/**/Assets/_Recovery/
+/projects/**/Assets/_Recovery.meta
+/projects/**/ProjectSettings/Packages/
+
+# Android 빌드 아티팩트
+/projects/**/*.apk
+/projects/**/*.apk.cpgz
+/projects/**/*.zip
+/projects/**/and_debug/
