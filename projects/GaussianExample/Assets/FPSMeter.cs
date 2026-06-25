@@ -4,33 +4,39 @@ using UnityEngine.UI;
 namespace GaussianSplatting
 {
     /// <summary>
-    /// 렌더링 FPS를 측정하여 Debug.Log와 선택적 UI Text로 출력.
-    /// GaussianSplatRenderer가 있는 씬에 추가할 것.
+    /// 렌더링 FPS를 측정하여 화면 우측 상단에 표시.
+    /// 씬에 없으면 자동 생성됨 (RuntimeInitializeOnLoadMethod).
     /// </summary>
     public class FPSMeter : MonoBehaviour
     {
         [Header("Measurement")]
-        [Tooltip("측정 시작 전 건너뛸 프레임 수 (초기 로딩 지연 제외)")]
         [SerializeField] private int warmupFrames = 60;
-
-        [Tooltip("로그 출력 주기 (초)")]
         [SerializeField] private float logInterval = 3f;
-
-        [Header("UI (optional)")]
-        [SerializeField] private Text fpsText;
 
         private int   _warmupCount;
         private int   _frameCount;
         private float _elapsed;
         private float _lastFps;
+        private Text  _fpsText;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoCreate()
+        {
+            if (FindFirstObjectByType<FPSMeter>() != null) return;
+
+            var go = new GameObject("FPSMeter");
+            DontDestroyOnLoad(go);
+            go.AddComponent<FPSMeter>();
+        }
+
+        private void Awake()
+        {
+            _fpsText = CreateOverlayText();
+        }
 
         private void Update()
         {
-            if (_warmupCount < warmupFrames)
-            {
-                _warmupCount++;
-                return;
-            }
+            if (_warmupCount < warmupFrames) { _warmupCount++; return; }
 
             _frameCount++;
             _elapsed += Time.unscaledDeltaTime;
@@ -45,8 +51,46 @@ namespace GaussianSplatting
                 _elapsed    = 0f;
             }
 
-            if (fpsText != null)
-                fpsText.text = $"{_lastFps:F0} FPS";
+            if (_fpsText != null)
+                _fpsText.text = $"{Mathf.RoundToInt(1f / Time.unscaledDeltaTime)} FPS";
+        }
+
+        private static Text CreateOverlayText()
+        {
+            var canvas = new GameObject("FPSMeter_Canvas").AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 999;
+            DontDestroyOnLoad(canvas.gameObject);
+
+            var scaler = canvas.gameObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+
+            canvas.gameObject.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("FPSText");
+            textGo.transform.SetParent(canvas.transform, false);
+
+            var rt = textGo.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(1f, 1f);
+            rt.anchorMax = new Vector2(1f, 1f);
+            rt.pivot     = new Vector2(1f, 1f);
+            rt.anchoredPosition = new Vector2(-20f, -20f);
+            rt.sizeDelta = new Vector2(200f, 60f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font      = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize  = 36;
+            text.fontStyle = FontStyle.Bold;
+            text.color     = Color.yellow;
+            text.alignment = TextAnchor.UpperRight;
+            text.text      = "-- FPS";
+
+            var shadow = textGo.AddComponent<Shadow>();
+            shadow.effectColor    = Color.black;
+            shadow.effectDistance = new Vector2(2f, -2f);
+
+            return text;
         }
     }
 }
