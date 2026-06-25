@@ -1,11 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using GaussianSplatting.Runtime;
+using Debug = UnityEngine.Debug;
 
 namespace GaussianSplatting
 {
@@ -356,6 +358,9 @@ namespace GaussianSplatting
                     string savePath = Path.Combine(saveDir, $"{currentJobId}.unitygs");
                     File.WriteAllBytes(savePath, request.downloadHandler.data);
 
+                    // 다운로드 완료 시점부터 첫 렌더링까지 측정
+                    var swLoad = Stopwatch.StartNew();
+
                     UpdateStatus($"Download complete: {savePath}", Color.green);
                     AppendLog($"Asset saved to: {savePath}");
                     AppendLog($"File size: {FormatBytes(request.downloadHandler.data.Length)}");
@@ -389,9 +394,12 @@ namespace GaussianSplatting
                     {
                         if (renderer != null)
                         {
+                            swLoad.Stop();
                             loadedRenderer = renderer;
                             loadSuccess = true;
                             AppendLog($"✓ Gaussian Splat renderer created: {renderer.gameObject.name}");
+                            AppendLog($"[Perf] download→render: {swLoad.ElapsedMilliseconds}ms");
+                            Debug.Log($"[VideoUploadManager][Perf] download_to_render={swLoad.ElapsedMilliseconds}ms");
                         }
                     }));
 

@@ -1,8 +1,10 @@
 using System;
 using System.Collections;
+using System.Diagnostics;
 using System.IO;
 using UnityEngine;
 using GaussianSplatting.Runtime;
+using Debug = UnityEngine.Debug;
 
 namespace GaussianSplatting
 {
@@ -40,17 +42,20 @@ namespace GaussianSplatting
                 yield break;
             }
 
+            var swTotal = Stopwatch.StartNew();
             Debug.Log($"[UnityGSLoader] Loading: {binaryPath}");
 
             // ① 파일 I/O → 백그라운드 스레드 (Unity API 없음)
             RawSplatData raw  = null;
             Exception    err  = null;
+            var swIO = Stopwatch.StartNew();
             var task = System.Threading.Tasks.Task.Run(() =>
             {
                 try   { raw = ReadRaw(binaryPath); }
                 catch (Exception ex) { err = ex; }
             });
             while (!task.IsCompleted) yield return null;
+            swIO.Stop();
 
             if (err != null)
             {
@@ -61,6 +66,7 @@ namespace GaussianSplatting
 
             // ② GaussianSplatAsset 조립 → 메인 스레드 (ScriptableObject, TextAsset)
             GaussianSplatAsset asset;
+            var swBuild = Stopwatch.StartNew();
             try   { asset = BuildAsset(raw); }
             catch (Exception ex)
             {
@@ -68,6 +74,7 @@ namespace GaussianSplatting
                 onComplete?.Invoke(null);
                 yield break;
             }
+            swBuild.Stop();
 
             // ③ 렌더러 생성 → 비활성 상태로 먼저 만들고 asset 세팅 후 활성화
             //    AddComponent 직후 OnEnable이 즉시 실행되므로 SetActive(false) 선행 필수
@@ -79,7 +86,11 @@ namespace GaussianSplatting
 
             splatObj.SetActive(true);               // 여기서 OnEnable → 렌더러 초기화
 
-            Debug.Log($"[UnityGSLoader] Rendered {asset.splatCount:N0} splats");
+            swTotal.Stop();
+            Debug.Log($"[UnityGSLoader][Perf] splats={asset.splatCount:N0} " +
+                      $"io={swIO.ElapsedMilliseconds}ms " +
+                      $"build={swBuild.ElapsedMilliseconds}ms " +
+                      $"total={swTotal.ElapsedMilliseconds}ms");
             onComplete?.Invoke(renderer);
         }
 
