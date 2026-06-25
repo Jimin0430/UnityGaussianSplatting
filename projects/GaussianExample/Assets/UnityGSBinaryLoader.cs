@@ -43,6 +43,7 @@ namespace GaussianSplatting
             }
 
             var swTotal = Stopwatch.StartNew();
+            FPSMeter.NotifyLoadStart();
             Debug.Log($"[UnityGSLoader] Loading: {binaryPath}");
 
             // ① 파일 I/O → 백그라운드 스레드 (Unity API 없음)
@@ -87,6 +88,7 @@ namespace GaussianSplatting
             splatObj.SetActive(true);               // 여기서 OnEnable → 렌더러 초기화
 
             swTotal.Stop();
+            FPSMeter.NotifyLoadEnd();
             Debug.Log($"[UnityGSLoader][Perf] splats={asset.splatCount:N0} " +
                       $"io={swIO.ElapsedMilliseconds}ms " +
                       $"build={swBuild.ElapsedMilliseconds}ms " +
